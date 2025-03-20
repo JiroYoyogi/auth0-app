@@ -8,6 +8,7 @@ function Auth() {
       clientId=""
       authorizationParams={{
         redirect_uri: window.location.origin,
+        audience: "",
       }}
     >
       <App />

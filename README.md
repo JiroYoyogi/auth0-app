@@ -1,49 +1,27 @@
-# ライブラリインストール
+# 追加ライブラリインストール
 
 ```
-npm install @auth0/auth0-react
+npm i react-icons axios express cors express-oauth2-jwt-bearer
 ```
 
-# 不要ファイルを削除
-
-- App.css
-
-# ファイル追加
-
-- Auth.jsx
-
-```jsx
-import App from "./App";
-import { Auth0Provider } from "@auth0/auth0-react";
-
-function Auth() {
-  return (
-    <Auth0Provider
-      domain="自分のドメイン"
-      clientId="自分のclientId"
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-      }}
-    >
-      <App />
-    </Auth0Provider>
-  );
-}
-
-export default Auth;
-```
-
-# ファイル内容変更
+# いいねボタンのUIを作る
 
 - App.jsx
 
 ```jsx
 import { useState, useEffect } from 'react'
 import { useAuth0 } from "@auth0/auth0-react";
+import axios from "axios";
+import { FaHeart } from "react-icons/fa";
 
 function App() {
   const { user, isAuthenticated, isLoading, loginWithRedirect, logout } = useAuth0();
   const [userName, setUserName] = useState('ゲスト');
+  const [countLike, setCountLike] = useState(0);
+
+  const doLike = async () => {
+    console.log('いいね');
+  }
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -58,6 +36,12 @@ function App() {
   return (
     <main>
       <p>ようこそ、{userName}さん</p>
+      <div className="like">
+        <span>{countLike}</span>
+        <button className="btn--like" onClick={doLike}>
+          <FaHeart color="#E34043" size="32px" />
+        </button>
+      </div>
       {
         isAuthenticated ? (
           <>
@@ -74,82 +58,152 @@ function App() {
 export default App
 ```
 
-- main.jsx
+# いいねAPIを作成する
+
+## ファイル追加
+
+- server.mjs
+
+```js
+import express from 'express'
+import cors from 'cors';
+const app = express();
+import { auth, claimIncludes } from 'express-oauth2-jwt-bearer';
+const port = process.env.PORT || 8080;
+
+const jwtCheck = auth({
+  audience: '',
+  issuerBaseURL: '',
+  tokenSigningAlg: 'RS256'
+});
+
+// CORSを有効
+app.use(cors());
+// リクエストBodyを取得
+app.use(express.json()); 
+
+// 全てのリクエストでjwtのチェックをする
+// app.use(jwtCheck);
+
+let dbLikeCount = 0;
+
+app.get('/likes', function (req, res) {
+    res.json({
+        count: dbLikeCount
+    });
+});
+
+app.post('/likes', jwtCheck, async function (req, res) {
+    dbLikeCount++;
+    res.json({
+        count: dbLikeCount
+    });
+});
+
+app.listen(port);
+console.log('Running on port ', port);
+```
+
+## ファイル変更
+
+- package.json
+
+start-apiのスクリプトを追加する
+
+```json
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start-api": "node server.mjs"
+  },
+```
+
+# いいねの初期値をAPIから取得する
+
+- Auth.jsx
+
+audienceの値を追加
 
 ```jsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import Auth from './Auth.jsx'
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <Auth />
-  </StrictMode>,
-)
+    <Auth0Provider
+      domain="dev-qs2vlij1fj3vowyp.us.auth0.com"
+      clientId="oXUP2xhtVPX0kFeu89Pk7pZvdwIVY8Mk"
+      authorizationParams={{
+        redirect_uri: window.location.origin,
+        audience: "http://localhost:8080",
+      }}
+    >
+      <App />
+    </Auth0Provider>
 ```
 
-- index.css
+- App.jsx
 
+カウント数を管理
+
+```jsx
+const [countLike, setCountLike] = useState(0);
 ```
-* {
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-  outline: none;
-}
 
-body {
-  background-color: #282C36;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+ページロードのタイミングでいいね数をAPIからGET
 
-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
+```jsx
+  // いいね
+  useEffect(() => {
+    axios
+      .get(`${API_DOMAIN}/likes`)
+      .then((r) => {
+        if (!r.data.count) return;
+        setCountLike(r.data.count);
+      });
+  }, []);
+```
 
-button {
-  width: 180px;
-  padding: 8px 0;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-}
+APIのドメインを定義
 
-.like {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 16px;
+```jsx
+const API_DOMAIN = "http://localhost:8080";
+```
 
-}
+# ログインユーザーのみいいね出来る
 
-.like span {
-  font-size: 32px;
-}
+- App.jsx
 
-.like .btn--like {
-  width: auto;
-  padding: 0;
-  background: none;
-}
+アクセストークンを取得する関数を読み込む
 
-.btn--rankup {
-  background-color: #F6AE54;
-}
+```jsx
+  const { user, isAuthenticated, isLoading, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
+```
 
-.btn--logout {
-  background-color: #E34043;
-}
-.btn--login {
-  background-color: #405BE3;
-}
+アクセストークンの状態を管理
 
+```jsx
+const [accessToken, setAccessToken] = useState("");
+```
+
+アクセストークンを取得して保存
+
+```jsx
+  // アクセストークン
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getAccessTokenSilently().then((res) => {
+      console.log(res);
+      setAccessToken(res);
+    });
+  }, [isAuthenticated, getAccessTokenSilently]);
+```
+
+アクセストークンをヘッダーに入れる
+
+```jsx
+  const doLike = async () => {
+    const res = await axios.post(`${API_DOMAIN}/likes`, {}, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    console.log(res);
+    setCountLike(res.data.count);
+  }
 ```
