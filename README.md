@@ -51,9 +51,9 @@ function App() {
   }, [isAuthenticated, user]);
 
   // ログインチェック中...
-  // if (isLoading) {
-  //   return <div>Loading ...</div>;
-  // }
+  if (isLoading) {
+    return <div>Loading ...</div>;
+  }
 
   return (
     <main>
