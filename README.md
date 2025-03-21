@@ -122,23 +122,6 @@ start-apiのスクリプトを追加する
 
 # いいねの初期値をAPIから取得する
 
-- Auth.jsx
-
-audienceの値を追加
-
-```jsx
-    <Auth0Provider
-      domain="dev-qs2vlij1fj3vowyp.us.auth0.com"
-      clientId="oXUP2xhtVPX0kFeu89Pk7pZvdwIVY8Mk"
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: "http://localhost:8080",
-      }}
-    >
-      <App />
-    </Auth0Provider>
-```
-
 - App.jsx
 
 カウント数を管理
@@ -168,6 +151,23 @@ const API_DOMAIN = "http://localhost:8080";
 ```
 
 # ログインユーザーのみいいね出来る
+
+- Auth.jsx
+
+audienceの値を追加
+
+```jsx
+    <Auth0Provider
+      domain=""
+      clientId=""
+      authorizationParams={{
+        redirect_uri: window.location.origin,
+        audience: "http://localhost:8080",
+      }}
+    >
+      <App />
+    </Auth0Provider>
+```
 
 - App.jsx
 
