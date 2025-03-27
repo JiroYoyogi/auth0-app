@@ -1,209 +1,264 @@
-# 追加ライブラリインストール
+# いいねを取り消す（API）
 
-```
-npm i react-icons axios express cors express-oauth2-jwt-bearer
+- server.mjs
+
+```js
+app.delete('/likes', jwtCheck, async function (req, res) {
+    dbLikeCount--;
+    res.json({
+        count: dbLikeCount
+    });
+});
 ```
 
-# いいねボタンのUIを作る
+# いいねを取り消す（フロント）
 
 - App.jsx
 
+アイコンのインポート
+
 ```jsx
-import { useState, useEffect } from 'react'
-import { useAuth0 } from "@auth0/auth0-react";
-import axios from "axios";
-import { FaHeart } from "react-icons/fa";
+import { FaHeart, FaHeartBroken } from "react-icons/fa";
+```
 
-function App() {
-  const { user, isAuthenticated, isLoading, loginWithRedirect, logout } = useAuth0();
-  const [userName, setUserName] = useState('ゲスト');
-  const [countLike, setCountLike] = useState(0);
+いいねを取り消す関数
 
-  const doLike = async () => {
-    console.log('いいね');
+```jsx
+  const deleteLike = async () => {
+    const res = await axios.delete(`${API_DOMAIN}/likes`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    console.log(res);
+    setCountLike(res.data.count);
   }
+```
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    setUserName(user.name);
-  }, [isAuthenticated, user]);
+いいねを取り消すボタン
 
-  // ログインチェック中...
-  if (isLoading) {
-    return <div>Loading ...</div>;
-  }
-
-  return (
-    <main>
-      <p>ようこそ、{userName}さん</p>
+```jsx
       <div className="like">
         <span>{countLike}</span>
         <button className="btn--like" onClick={doLike}>
           <FaHeart color="#E34043" size="32px" />
         </button>
+        <button className="btn--like" onClick={deleteLike}>
+          <FaHeartBroken color="#FFF" size="32px" />
+        </button>
       </div>
-      {
-        isAuthenticated ? (
-          <>
-            <button className='btn--logout' onClick={logout}>ログアウト</button>
-          </>
-        ) : (
-          <button className='btn--login' onClick={loginWithRedirect}>ログイン</button>
-        )
-      }
-    </main>
-  )
-}
-
-export default App
 ```
 
-# いいねAPIを作成する
+# Auth0での設定
 
-## ファイル追加
+- APIにpermissionを追加
+- トークンにpermissionが含まれるようにする
+- Roleを作成する。ユーザーにRoleを追加する
+
+# APIでパーミッションをチェック
 
 - server.mjs
 
 ```js
-import express from 'express'
-import cors from 'cors';
+app.delete(
+  "/likes",
+  jwtCheck,
+  claimIncludes("permissions", "delete:like"),
+  async function (req, res) {
+    dbLikeCount--;
+    res.json({
+      count: dbLikeCount,
+    });
+  }
+);
+```
+
+# ゴールド会員になる
+
+- server.js
+
+APIのパスを作成
+
+```js
+app.put("/users/:id/goldmember", async function (req, res) {
+  const id = req.params.id;
+  // マネジメントAPIのアクセストークンを取得
+  const access_token = await getAccessToken();
+  await axios.post(
+    `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
+    {
+      roles: ["ロールのID"],
+    },
+    { headers: { Authorization: `Bearer ${access_token}` } }
+  );
+
+  res.json({
+    message: "Ranked Up.",
+  });
+});
+```
+
+マネジメントAPIのアクセストークン取得関数
+
+```js
+// https://dev-1234567890.us.auth0.com
+const MANAGEMENT_API_DOMAIN = "";
+const getAccessToken = async () => {
+  // https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production
+  const r = await axios.post(
+    `${MANAGEMENT_API_DOMAIN}/oauth/token`,
+    {
+      client_id: "", // 設定タブ
+      client_secret: "", // 設定タブ
+      audience: "", // APIタブ
+      grant_type: "client_credentials",
+    },
+    {
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  return r.data.access_token;
+};
+```
+
+axiosのインポート
+
+```js
+import express from "express";
+import cors from "cors";
+import { auth, claimIncludes } from "express-oauth2-jwt-bearer";
+import axios from "axios";
+
 const app = express();
-import { auth, claimIncludes } from 'express-oauth2-jwt-bearer';
 const port = process.env.PORT || 8080;
-
-const jwtCheck = auth({
-  audience: '',
-  issuerBaseURL: '',
-  tokenSigningAlg: 'RS256'
-});
-
-// CORSを有効
-app.use(cors());
-// リクエストBodyを取得
-app.use(express.json()); 
-
-// 全てのリクエストでjwtのチェックをする
-// app.use(jwtCheck);
-
-let dbLikeCount = 0;
-
-app.get('/likes', function (req, res) {
-    res.json({
-        count: dbLikeCount
-    });
-});
-
-app.post('/likes', jwtCheck, async function (req, res) {
-    dbLikeCount++;
-    res.json({
-        count: dbLikeCount
-    });
-});
-
-app.listen(port);
-console.log('Running on port ', port);
 ```
 
-## ファイル変更
-
-- package.json
-
-start-apiのスクリプトを追加する
-
-```json
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "start-api": "node server.mjs"
-  },
-```
-
-# いいねの初期値をAPIから取得する
+# ゴールド会員になるボタン・関数
 
 - App.jsx
 
-カウント数を管理
+ゴールド会員になるボタン
 
 ```jsx
-const [countLike, setCountLike] = useState(0);
+        <>
+          <button className="btn--rankup" onClick={doRankUp}>
+            ゴールド会員になる
+          </button>
+          <button className="btn--logout" onClick={logout}>
+            ログアウト
+          </button>
+        </>
 ```
 
-ページロードのタイミングでいいね数をAPIからGET
+ゴールド会員になる関数
 
 ```jsx
-  // いいね
+  const doRankUp = async () => {
+    const res = await axios.put(`${API_DOMAIN}/users/${userId}/goldmember`, {}, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    console.log(res);
+  }
+```
+
+ユーザーID管理
+
+```jsx
+const [userId, setUserId] = useState("");
+```
+
+ユーザーID保存
+
+```jsx
   useEffect(() => {
-    axios
-      .get(`${API_DOMAIN}/likes`)
-      .then((r) => {
-        if (!r.data.count) return;
-        setCountLike(r.data.count);
-      });
-  }, []);
+    if (!isAuthenticated) return;
+    setUserName(user.name);
+    setUserId(user.sub);
+  }, [isAuthenticated, user]);
 ```
 
-APIのドメインを定義
+# ゴールド会員を止める（API）
 
-```jsx
-const API_DOMAIN = "http://localhost:8080";
+- server.mjs
+
+```js
+app.delete("/users/:id/goldmember", async function (req, res) {
+  const id = req.params.id;
+  console.log(id);
+  const access_token = await getAccessToken();
+  console.log(access_token);
+  await axios.delete(
+    `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
+    {
+      headers: { Authorization: `Bearer ${access_token}` },
+      data: { roles: ["ロールのID"] },
+    }
+  );
+
+  res.json({
+    message: "Ranked down.",
+  });
+});
 ```
 
-# ログインユーザーのみいいね出来る
-
-- Auth.jsx
-
-audienceの値を追加
-
-```jsx
-    <Auth0Provider
-      domain=""
-      clientId=""
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: "http://localhost:8080",
-      }}
-    >
-      <App />
-    </Auth0Provider>
-```
+# ゴールド会員を止める（フロント）
 
 - App.jsx
 
-アクセストークンを取得する関数を読み込む
+アクセストークンをデコードするライブラリの追加
 
-```jsx
-  const { user, isAuthenticated, isLoading, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
+```
+npm i jwt-decode
 ```
 
-アクセストークンの状態を管理
+ゴールド会員かどうか状態管理
 
 ```jsx
-const [accessToken, setAccessToken] = useState("");
+  const [isGold, setIsGold]  = useState(false);
 ```
 
-アクセストークンを取得して保存
+トークンを見てゴールド会員か判断
 
 ```jsx
-  // アクセストークン
   useEffect(() => {
     if (!isAuthenticated) return;
     getAccessTokenSilently().then((res) => {
       console.log(res);
       setAccessToken(res);
+      const decoded = jwtDecode(res);
+      console.log(decoded);
+      const isGold = decoded.permissions.includes('delete:like');
+      setIsGold(isGold);
     });
   }, [isAuthenticated, getAccessTokenSilently]);
 ```
 
-アクセストークンをヘッダーに入れる
+ゴールド会員を止めるボタン
 
 ```jsx
-  const doLike = async () => {
-    const res = await axios.post(`${API_DOMAIN}/likes`, {}, {
+        <>
+          {
+            isGold ? (
+              <button className="btn--rankup" onClick={doRankDown}>
+                ゴールド会員を止める
+              </button>
+            ) : (
+              <button className="btn--rankup" onClick={doRankUp}>
+                ゴールド会員になる
+              </button>
+            )
+          }
+          <button className="btn--logout" onClick={logout}>
+            ログアウト
+          </button>
+        </>
+```
+
+ゴールド会員を止める関数
+
+```jsx
+  const doRankDown = async () => {
+    const res = await axios.delete(`${API_DOMAIN}/users/${userId}/goldmember`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     console.log(res);
-    setCountLike(res.data.count);
   }
 ```
