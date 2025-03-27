@@ -84,7 +84,7 @@ app.put("/users/:id/goldmember", async function (req, res) {
   const access_token = await getAccessToken();
   // https://auth0.com/docs/api/management/v2/users/post-user-roles
   await axios.post(
-    `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
+    `${SYSTEM_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
     {
       roles: ["ロールのID"],
     },
@@ -101,11 +101,11 @@ app.put("/users/:id/goldmember", async function (req, res) {
 
 ```js
 // https://dev-1234567890.us.auth0.com
-const MANAGEMENT_API_DOMAIN = "";
+const SYSTEM_API_DOMAIN = "";
 const getAccessToken = async () => {
   // https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens/get-management-api-access-tokens-for-production
   const r = await axios.post(
-    `${MANAGEMENT_API_DOMAIN}/oauth/token`,
+    `${SYSTEM_API_DOMAIN}/oauth/token`,
     {
       client_id: "", // 設定タブ
       client_secret: "", // 設定タブ
@@ -188,7 +188,7 @@ app.delete("/users/:id/goldmember", async function (req, res) {
   console.log(access_token);
   // https://auth0.com/docs/api/management/v2/users/delete-user-roles
   await axios.delete(
-    `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
+    `${SYSTEM_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
     {
       headers: { Authorization: `Bearer ${access_token}` },
       data: { roles: ["ロールのID"] },
