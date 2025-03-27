@@ -82,6 +82,7 @@ app.put("/users/:id/goldmember", async function (req, res) {
   const id = req.params.id;
   // マネジメントAPIのアクセストークンを取得
   const access_token = await getAccessToken();
+  // https://auth0.com/docs/api/management/v2/users/post-user-roles
   await axios.post(
     `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
     {
@@ -185,6 +186,7 @@ app.delete("/users/:id/goldmember", async function (req, res) {
   console.log(id);
   const access_token = await getAccessToken();
   console.log(access_token);
+  // https://auth0.com/docs/api/management/v2/users/delete-user-roles
   await axios.delete(
     `${MANAGEMENT_API_DOMAIN}/api/v2/users/${encodeURIComponent(id)}/roles`,
     {
