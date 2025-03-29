@@ -211,6 +211,12 @@ app.delete("/users/:id/goldmember", async function (req, res) {
 npm i jwt-decode
 ```
 
+jwt-decodeの読み込み
+
+```jsx
+import { jwtDecode } from "jwt-decode";
+```
+
 ゴールド会員かどうか状態管理
 
 ```jsx
