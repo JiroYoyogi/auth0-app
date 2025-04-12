@@ -63,7 +63,7 @@ app.delete(
   }
 );
 
-app.put("/users/:id/goldmember", async function (req, res) {
+app.put("/users/:id/goldmember", jwtCheck, async function (req, res) {
   const id = req.params.id;
 	console.log(id);
   // マネジメントAPIのアクセストークンを取得
@@ -82,7 +82,7 @@ app.put("/users/:id/goldmember", async function (req, res) {
   });
 });
 
-app.delete("/users/:id/goldmember", async function (req, res) {
+app.delete("/users/:id/goldmember", jwtCheck, async function (req, res) {
   const id = req.params.id;
   console.log(id);
   const access_token = await getAccessToken();

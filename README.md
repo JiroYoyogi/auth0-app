@@ -78,7 +78,7 @@ app.delete(
 APIのパスを作成
 
 ```js
-app.put("/users/:id/goldmember", async function (req, res) {
+app.put("/users/:id/goldmember", jwtCheck, async function (req, res) {
   const id = req.params.id;
   // マネジメントAPIのアクセストークンを取得
   const access_token = await getAccessToken();
@@ -181,7 +181,7 @@ const [userId, setUserId] = useState("");
 - server.mjs
 
 ```js
-app.delete("/users/:id/goldmember", async function (req, res) {
+app.delete("/users/:id/goldmember", jwtCheck, async function (req, res) {
   const id = req.params.id;
   console.log(id);
   const access_token = await getAccessToken();
