@@ -80,7 +80,7 @@ function App() {
       setAccessToken(res);
       const decoded = jwtDecode(res);
       console.log(decoded);
-      const isGold = decoded.permissions.includes("delete:likes");
+      const isGold = decoded.permissions.includes("delete:like");
       setIsGold(isGold);
     });
   }, [isAuthenticated, getAccessTokenSilently]);
